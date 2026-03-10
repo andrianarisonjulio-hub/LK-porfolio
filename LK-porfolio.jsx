@@ -4,9 +4,8 @@ import {
   Mail,
   User,
   ExternalLink, 
-  ChevronLeft, 
   Instagram,
-  Twitter,
+  Facebook,
   Linkedin,
   ArrowRight,
   Search,
@@ -18,7 +17,7 @@ import {
   X
 } from 'lucide-react';
 
-// --- Portfolio Data ---
+// --- Données du Portfolio ---
 const POSTERS_DATA = [
   { id: 1, title: "Neon Nights Festival", category: "Musical event", image: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800", height: "h-96", date: "2024", client: "L'Aéronef" },
   { id: 2, title: "Abstract Jazz Session", category: "Musical event", image: "https://images.unsplash.com/photo-1514525253361-bee8a487409e?q=80&w=800", height: "h-72", date: "2023", client: "Blue Note" },
@@ -53,7 +52,13 @@ export default function App() {
   const scrollCurrent = useRef(0);
   const rafId = useRef(null);
 
+  // Configuration du formulaire
+  const userEmail = "hello@gabriel.design"; // REMPLACEZ PAR VOTRE GMAIL ICI
+
+  // --- Gestion du Curseur et du Scroll ---
   useEffect(() => {
+    const isMobile = window.innerWidth <= 768;
+
     const handleMouseMoveGlobal = (e) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
 
@@ -69,6 +74,7 @@ export default function App() {
     const handleMouseUpGlobal = () => setIsDraggingScroll(false);
 
     const handleMouseOverGlobal = (e) => {
+      if (isMobile) return;
       const target = e.target;
       if (target.closest('.cursor-zoom-in')) {
         setCursorType('zoom');
@@ -80,20 +86,26 @@ export default function App() {
     };
 
     const animate = () => {
-      // Smooth Cursor
-      const cursorLerp = 0.2;
-      delayedPos.current.x += (mousePos.current.x - delayedPos.current.x) * cursorLerp;
-      delayedPos.current.y += (mousePos.current.y - delayedPos.current.y) * cursorLerp;
+      if (!isMobile) {
+        const cursorLerp = 0.2;
+        delayedPos.current.x += (mousePos.current.x - delayedPos.current.x) * cursorLerp;
+        delayedPos.current.y += (mousePos.current.y - delayedPos.current.y) * cursorLerp;
 
-      if (cursorRef.current) {
-        cursorRef.current.style.transform = `translate3d(${delayedPos.current.x}px, ${delayedPos.current.y}px, 0)`;
+        if (cursorRef.current) {
+          cursorRef.current.style.transform = `translate3d(${delayedPos.current.x}px, ${delayedPos.current.y}px, 0)`;
+        }
       }
 
-      // Smooth Scroll
       if (mainContentRef.current && !selectedPoster && activeTab === 'accueil') {
         const scrollLerp = 0.1;
         scrollCurrent.current += (scrollTarget.current - scrollCurrent.current) * scrollLerp;
-        mainContentRef.current.scrollTop = scrollCurrent.current;
+        
+        if (!isMobile) {
+          mainContentRef.current.scrollTop = scrollCurrent.current;
+        } else {
+          scrollCurrent.current = mainContentRef.current.scrollTop;
+          scrollTarget.current = mainContentRef.current.scrollTop;
+        }
 
         const maxScroll = mainContentRef.current.scrollHeight - mainContentRef.current.clientHeight;
         if (maxScroll > 0) {
@@ -105,7 +117,7 @@ export default function App() {
     };
 
     const handleWheel = (e) => {
-      if (selectedPoster || activeTab !== 'accueil') return;
+      if (selectedPoster || activeTab !== 'accueil' || isMobile) return;
       e.preventDefault();
       const maxScroll = mainContentRef.current.scrollHeight - mainContentRef.current.clientHeight;
       scrollTarget.current = Math.min(Math.max(scrollTarget.current + e.deltaY, 0), maxScroll);
@@ -116,7 +128,7 @@ export default function App() {
     window.addEventListener('mouseover', handleMouseOverGlobal);
     
     const container = mainContentRef.current;
-    if (container && window.innerWidth > 768) {
+    if (container && !isMobile) {
       container.addEventListener('wheel', handleWheel, { passive: false });
     }
 
@@ -139,6 +151,19 @@ export default function App() {
     const maxScroll = mainContentRef.current.scrollHeight - mainContentRef.current.clientHeight;
     scrollTarget.current = percentage * maxScroll;
     setIsDraggingScroll(true);
+  };
+
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const nom = formData.get('nom');
+    const email = formData.get('email');
+    const projet = formData.get('projet');
+    
+    const subject = encodeURIComponent(`Nouveau Projet - ${nom}`);
+    const body = encodeURIComponent(`Nom: ${nom}\nEmail: ${email}\n\nDescription du projet:\n${projet}`);
+    
+    window.location.href = `mailto:${userEmail}?subject=${subject}&body=${body}`;
   };
 
   const categoriesList = [
@@ -181,6 +206,7 @@ export default function App() {
                   src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800" 
                   alt="Portrait" 
                   className="w-full h-full object-cover"
+                  onError={(e) => { e.target.src = "https://via.placeholder.com/800x1000?text=Gabriel"; }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
               </div>
@@ -216,16 +242,16 @@ export default function App() {
                <div className="cta-border-beam !inset-[-2px] !rounded-[42px] opacity-100"></div>
                <div className="relative z-10 w-full bg-neutral-950/95 backdrop-blur-3xl p-8 md:p-12 rounded-[40px] shadow-2xl overflow-hidden">
                  <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-12 text-center md:text-left">Démarrer une <br/> collaboration.</h1>
-                 <div className="space-y-6 text-left">
-                   <input type="text" placeholder="VOTRE NOM" className="w-full bg-transparent border-b border-white/10 py-4 font-black uppercase italic text-sm tracking-widest focus:border-white outline-none transition-all placeholder:text-neutral-700" />
-                   <input type="email" placeholder="EMAIL" className="w-full bg-transparent border-b border-white/10 py-4 font-black uppercase italic text-sm tracking-widest focus:border-white outline-none transition-all placeholder:text-neutral-700" />
-                   <textarea placeholder="PROJET" rows="3" className="w-full bg-transparent border-b border-white/10 py-4 font-black uppercase italic text-sm tracking-widest focus:border-white outline-none transition-all placeholder:text-neutral-700 resize-none"></textarea>
-                   <button className="w-full bg-white text-black py-6 rounded-2xl font-black uppercase italic tracking-widest mt-8 hover:bg-red-600 hover:text-white transition-all shadow-xl">Envoyer le message</button>
-                 </div>
+                 <form className="space-y-6 text-left" onSubmit={handleContactSubmit}>
+                   <input required name="nom" type="text" placeholder="VOTRE NOM" className="w-full bg-transparent border-b border-white/10 py-4 font-black uppercase italic text-sm tracking-widest focus:border-white outline-none transition-all placeholder:text-neutral-700" />
+                   <input required name="email" type="email" placeholder="EMAIL" className="w-full bg-transparent border-b border-white/10 py-4 font-black uppercase italic text-sm tracking-widest focus:border-white outline-none transition-all placeholder:text-neutral-700" />
+                   <textarea required name="projet" placeholder="PROJET" rows="3" className="w-full bg-transparent border-b border-white/10 py-4 font-black uppercase italic text-sm tracking-widest focus:border-white outline-none transition-all placeholder:text-neutral-700 resize-none"></textarea>
+                   <button type="submit" className="w-full bg-white text-black py-6 rounded-2xl font-black uppercase italic tracking-widest mt-8 hover:bg-red-600 hover:text-white transition-all shadow-xl">Envoyer sur Gmail</button>
+                 </form>
                  <div className="mt-12 pt-8 border-t border-white/5 flex flex-wrap justify-between gap-6">
                    <div>
                       <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1">Email Direct</p>
-                      <p className="text-xs font-bold text-white uppercase italic">hello@gabriel.design</p>
+                      <p className="text-xs font-bold text-white uppercase italic">{userEmail}</p>
                    </div>
                    <div>
                       <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1">Location</p>
@@ -240,7 +266,7 @@ export default function App() {
         return (
           <>
             <header className="sticky top-0 bg-neutral-950/40 backdrop-blur-md z-30 px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-white/5">
-              <div className="text-left">
+              <div className="text-left w-full md:w-auto">
                 <h2 className="text-2xl font-black tracking-tighter italic uppercase leading-none">Portfolio</h2>
                 <p className="text-[9px] text-neutral-500 uppercase tracking-[0.4em] font-black mt-2">Graphisme & Direction Artistique</p>
               </div>
@@ -272,7 +298,12 @@ export default function App() {
                     onClick={() => setSelectedPoster(poster)}
                   >
                     <div className={`w-full ${poster.height} overflow-hidden rounded-2xl relative bg-neutral-900 border border-white/5 transition-all duration-700 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] group-hover:-translate-y-2 group-hover:border-white/20`}>
-                      <img src={poster.image} alt={poster.title} className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 group-hover:brightness-110"/>
+                      <img 
+                        src={poster.image} 
+                        alt={poster.title} 
+                        className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 group-hover:brightness-110"
+                        onError={(e) => { e.target.src = "https://via.placeholder.com/400x600?text=Graphic+Work"; }}
+                      />
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 p-8 flex flex-col justify-end">
                         <div className="flex justify-between items-end transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                           <div>
@@ -295,7 +326,7 @@ export default function App() {
   };
 
   return (
-    <div className={`h-screen bg-neutral-950 text-white font-sans selection:bg-red-500/30 flex flex-col md:flex-row relative overflow-hidden cursor-none ${isDraggingScroll ? 'select-none' : ''}`}>
+    <div className={`h-screen bg-neutral-950 text-white font-sans selection:bg-red-500/30 flex flex-col md:flex-row relative overflow-hidden ${isDraggingScroll ? 'select-none' : ''}`}>
       
       <style>{`
         @keyframes rotate-beam {
@@ -379,7 +410,7 @@ export default function App() {
         .perspective-1000 { perspective: 1000px; }
       `}</style>
 
-      {/* --- Floating CTA --- */}
+      {/* --- CTA Flottant --- */}
       <div className={`cta-container ${activeTab === 'contact' ? 'translate-y-20 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
         <button 
           onClick={() => { setActiveTab('contact'); setSelectedPoster(null); }}
@@ -395,7 +426,7 @@ export default function App() {
         </button>
       </div>
       
-      {/* --- Custom Scrollbar --- */}
+      {/* --- Scrollbar Personnalisée --- */}
       {activeTab === 'accueil' && !selectedPoster && (
         <div 
           ref={scrollBarRef}
@@ -415,7 +446,7 @@ export default function App() {
         </div>
       )}
 
-      {/* --- Custom Cursor --- */}
+      {/* --- Curseur Personnalisé --- */}
       <div 
         ref={cursorRef}
         className={`fixed top-0 left-0 pointer-events-none z-[9999] hidden md:flex items-center justify-center overflow-hidden
@@ -439,21 +470,26 @@ export default function App() {
         )}
       </div>
 
-      {/* --- Background Noise & Blobs --- */}
+      {/* --- Arrière-plan & Grain --- */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-neutral-950">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-red-600/5 rounded-full blur-[140px]"></div>
         <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 rounded-full blur-[120px]"></div>
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
       </div>
 
-      {/* --- Sidebar Navigation --- */}
+      {/* --- Navigation Sidebar --- */}
       <aside className="hidden md:flex flex-col w-24 h-full bg-white/5 backdrop-blur-2xl border-r border-white/10 items-center py-10 z-50 flex-shrink-0">
         <button 
           onClick={() => { setActiveTab('accueil'); setSelectedPoster(null); scrollTarget.current = 0; }}
           className="mb-14 group transition-transform active:scale-90"
         >
-          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-black font-black text-xl italic shadow-2xl transition-all duration-500 group-hover:bg-red-600 group-hover:text-white group-hover:rotate-12">
-            G
+          {/* Logo remplacé par une image */}
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center overflow-hidden shadow-2xl transition-all duration-500 group-hover:bg-red-600 group-hover:rotate-12">
+            <img 
+              src="https://via.placeholder.com/100x100?text=Logo" 
+              alt="Logo" 
+              className="w-full h-full object-cover p-1"
+            />
           </div>
         </button>
 
@@ -473,13 +509,13 @@ export default function App() {
         </nav>
 
         <div className="flex flex-col gap-6 text-neutral-500 mt-auto">
+          <button className="hover:text-blue-600 transition-all hover:scale-125"><Facebook size={20} /></button>
           <button className="hover:text-pink-500 transition-all hover:scale-125"><Instagram size={20} /></button>
-          <button className="hover:text-blue-400 transition-all hover:scale-125"><Twitter size={20} /></button>
           <button className="hover:text-white transition-all hover:scale-125"><Linkedin size={20} /></button>
         </div>
       </aside>
 
-      {/* --- Mobile Navigation --- */}
+      {/* --- Navigation Mobile --- */}
       <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-3xl shadow-2xl rounded-[2.5rem] px-8 py-5 border border-white/10 flex items-center gap-12 z-50">
         {navItems.map((item) => (
           <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedPoster(null); }} className={`transition-transform active:scale-90 ${activeTab === item.id ? 'text-white scale-125' : 'text-neutral-600'}`}>
@@ -495,7 +531,7 @@ export default function App() {
         {renderContent()}
       </div>
 
-      {/* --- Detail Modal --- */}
+      {/* --- Modal de Détails --- */}
       {selectedPoster && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setSelectedPoster(null)}></div>
